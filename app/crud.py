@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timezone
-from app import models, schemas
+from app import models, schemas, database
+from fastapi import Depends,HTTPException
+from typing import Optional
 
 # ----------------- USER CRUD OPERATIONS -----------------
 def create_user(db: Session, user: schemas.UserCreate):
@@ -17,6 +19,12 @@ def get_user_by_id(db: Session, user_id: int):
 
 def get_user_by_phone(db: Session, phone_number: str):
     return db.query(models.User).filter(models.User.phone_number == phone_number).first()
+
+def get_current_user(db: Session, phone_number: str):
+    user = db.query(models.User).filter(models.User.phone_number == phone_number).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    return user
 
 # ----------------- DATA PACKAGE CRUD OPERATIONS -----------------
 def create_data_package(db: Session, package: schemas.DataPackageCreate):

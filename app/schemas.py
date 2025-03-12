@@ -50,6 +50,13 @@ class DataPackageResponse(DataPackageBase):
     class Config:
         from_attributes = True
 
+class DataPackageUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=3, max_length=50, description="Updated package name (e.g., '5GB')")
+    price: Optional[float] = Field(None, gt=0, description="Updated price in KSH")
+    data_limit_mb: Optional[int] = Field(None, gt=0, description="Updated data limit in megabytes")
+    duration_hours: Optional[int] = Field(None, gt=0, description="Updated validity duration in hours")
+
+
 
 # ----------------- DATA PACKET SCHEMAS -----------------
 class DataPacketBase(BaseModel):
@@ -88,6 +95,25 @@ class TransactionResponse(TransactionBase):
     class Config:
         from_attributes = True
 
+#-----------Payment schemas---------- 
+
+class PaymentResponse(BaseModel):
+    status: str = Field(..., description="Payment status (success, pending, failed)")
+    txn_id: str = Field(..., description="Transaction ID from the payment gateway")
+    message: Optional[str] = Field(None, description="Additional payment information")
+
+    class Config:
+        from_attributes = True
+
+
+class PaymentCreate(BaseModel):
+    phone_number: str = Field(..., min_length=10, max_length=15, description="Recipient phone number")
+    amount: float = Field(..., gt=0, description="Payment amount in KES")
+    transaction_id: str = Field(..., description="Unique transaction ID for tracking")
+
+    class Config:
+        from_attributes = True
+
 
 # ----------------- AUTH SCHEMAS -----------------
 class Token(BaseModel):
@@ -96,3 +122,37 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     phone_number: Optional[str] = None
+
+
+# ----------------- ACTIVE SESSION SCHEMAS -----------------
+
+class ActiveSessionCreate(BaseModel):
+    user_id: int
+    package_id: int
+    ip_address: str
+    start_time: datetime
+    end_time: datetime
+    is_active: bool = True
+
+
+class SessionCreate(BaseModel):
+    user_id: int
+    package_id: int
+    ip_address: str
+    start_time: datetime
+    end_time: datetime
+
+
+class SessionBase(BaseModel):
+    user_id: int = Field(..., description="User ID associated with the session")
+    package_id: int = Field(..., description="Data package ID")
+    ip_address: str = Field(..., description="User's IP address")
+    start_time: datetime = Field(..., description="Session start time")
+    end_time: datetime = Field(..., description="Session end time")
+
+class SessionResponse(SessionBase):
+    id: int
+    is_active: bool = Field(..., description="Indicates if the session is currently active")
+
+    class Config:
+        from_attributes = True
