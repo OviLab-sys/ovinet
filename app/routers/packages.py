@@ -28,7 +28,7 @@ def get_all_packages(db: Session = Depends(get_db)):
     """
     Retrieve all available data packages.
     """
-    return crud.get_all_packages(db)
+    return crud.get_all_data_packages(db)
 
 @router.get("/{package_id}", response_model=schemas.DataPackageResponse)
 def get_package_by_id(package_id: int, db: Session = Depends(get_db)):
