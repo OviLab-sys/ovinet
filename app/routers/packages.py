@@ -1,27 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas, crud, database
+from app import crud, schemas
+from app.database import get_db  # Changed import from dependencies to database
 
-router = APIRouter(prefix="/packages", tags=["Packages"])
+router = APIRouter()
 
-# Dependency to get the database session
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.get("/packages/{name}", response_model=schemas.DataPackage)
+def get_package_by_name(name: str, db: Session = Depends(get_db)):
+    package = crud.get_package_by_name(db, name)
+    if not package:
+        raise HTTPException(status_code=404, detail="Package not found")
+    return package
 
-@router.post("/", response_model=schemas.DataPackageResponse)
-def create_package(package_data: schemas.DataPackageCreate, db: Session = Depends(get_db)):
-    """
-    Create a new data package (e.g., 1GB, 10GB plans).
-    """
-    existing_package = crud.get_package_by_name(db, package_data.name)
-    if existing_package:
-        raise HTTPException(status_code=400, detail="Package with this name already exists.")
-    
-    return crud.create_package(db, package_data)
+@router.post("/packages", response_model=schemas.DataPackage)
+def create_package(package: schemas.DataPackageCreate, db: Session = Depends(get_db)):
+    return crud.create_data_package(db, package)
 
 @router.get("/", response_model=list[schemas.DataPackageResponse])
 def get_all_packages(db: Session = Depends(get_db)):

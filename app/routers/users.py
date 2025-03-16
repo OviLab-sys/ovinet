@@ -1,18 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from .. import schemas, crud, database
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import Depends
+from fastapi import APIRouter, Depends, HTTPException # All used
+from sqlalchemy.orm import Session  # Used
+from app import crud, models, schemas  # All used
+from app.database import get_db  # Used
+from app.auth import authenticate_user, create_access_token, get_current_user  # All used
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-# Dependency to get the database session
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/register", response_model=schemas.UserResponse)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -22,16 +14,20 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db, user)
 
 @router.post("/token", response_model=schemas.Token)
-def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = crud.authenticate_user(db, form_data.username, form_data.password)
+def login_for_access_token(form_data: schemas.LoginForm, db: Session = Depends(get_db)):
+    user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials.")
-    access_token = crud.create_access_token({"sub": user.phone_number})
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-def get_current_user(phone_number: str, db: Session = Depends(database.get_db)):
-    return crud.get_current_user(db, phone_number)
+@router.get("/users/me", response_model=schemas.User)
+def read_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
 
-@router.get("/{user_id}/wallet", response_model=schemas.WalletResponse)
-def get_user_wallet(user_id: int, db: Session = Depends(get_db)):
-    return crud.get_wallet_by_user_id(db, user_id)
+@router.get("/users/{user_id}/wallet", response_model=schemas.Wallet)
+def get_wallet(user_id: int, db: Session = Depends(get_db)):
+    wallet = crud.get_wallet_by_user_id(db, user_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    return wallet

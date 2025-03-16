@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DECIMAL, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DECIMAL, DateTime, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.database import Base
@@ -16,7 +16,7 @@ class DataPackage(Base):
     __tablename__ = "data_packages"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), unique=True, index=True)
-    price = Column(DECIMAL(10, 2))
+    price: float = Column(Float)
     data_limit_mb = Column(Integer)
 
 # Data Packet Model (Tracks individual data units consumed)
@@ -46,7 +46,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     package_id = Column(Integer, ForeignKey("data_packages.id"))
-    amount = Column(DECIMAL(10, 2))
+    amount: float = Column(Float)
     transaction_id = Column(String(100), unique=True, index=True)
     status = Column(String(20), default="pending")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

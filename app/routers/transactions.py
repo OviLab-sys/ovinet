@@ -1,28 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas, crud, database, intasend_service
+from typing import List  # Import List from typing
+from app import crud, schemas
+from app.intasend_service import IntaSendService
 
-router = APIRouter(prefix="/transactions", tags=["Transactions"])
+router = APIRouter()
 
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.post("/transactions", response_model=schemas.Transaction)
+def create_transaction(payment: schemas.PaymentCreate, db: Session = Depends(get_db)):
+    transaction = crud.create_transaction(db, schemas.TransactionCreate(**payment.dict()))
+    if not transaction:
+        raise HTTPException(status_code=400, detail="Transaction creation failed")
+    intasend_service = IntaSendService()
+    intasend_service.initiate_mpesa_payment(payment.phone_number, payment.amount, transaction.transaction_id)
+    return transaction
 
-intasend = intasend_service.IntaSendService()
-
-@router.post("/initiate", response_model=schemas.PaymentResponse)
-def initiate_payment(payment_data: schemas.PaymentCreate, db: Session = Depends(get_db)):
-    user = crud.get_user_by_id(db, payment_data.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    
-    transaction = crud.create_transaction(db, payment_data)
-    payment_response = intasend.initiate_payment(user.phone_number, payment_data.amount)
-    return {"transaction_id": transaction.id, "payment_status": payment_response["status"]}
-
-@router.get("/{user_id}", response_model=list[schemas.TransactionResponse])
-def get_user_transactions(user_id: int, db: Session = Depends(get_db)):
-    return crud.get_transactions_by_user_id(db, user_id)
+@router.get("/transactions/{user_id}", response_model=List[schemas.Transaction])
+def get_transactions(user_id: int, db: Session = Depends(get_db)):
+    transactions = crud.get_transactions_by_user_id(db, user_id)
+    if not transactions:
+        raise HTTPException(status_code=404, detail="Transactions not found")
+    return transactions

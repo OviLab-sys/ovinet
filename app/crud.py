@@ -1,13 +1,16 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timezone
-from app import models, schemas, database
-from fastapi import Depends,HTTPException
-from typing import Optional
+from app import models, schemas
+from fastapi import HTTPException
+import bcrypt
 
 # ----------------- USER CRUD OPERATIONS -----------------
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
 def create_user(db: Session, user: schemas.UserCreate):
-    hashed_password = user.password  # Hashing should be implemented
+    hashed_password = hash_password(user.password)
     db_user = models.User(username=user.username, phone_number=user.phone_number, password=hashed_password)
     db.add(db_user)
     db.commit()
@@ -62,7 +65,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 def update_transaction_status(db: Session, transaction_id: str, status: str):
     db_transaction = db.query(models.Transaction).filter(models.Transaction.transaction_id == transaction_id).first()
     if db_transaction:
-        db_transaction.status = status
+        db_transaction.status = status  # type: ignore
         db.commit()
         db.refresh(db_transaction)
     return db_transaction
@@ -89,7 +92,7 @@ def get_active_session(db: Session, user_id: int):
 def update_session_data_usage(db: Session, session_id: int, data_used_mb: int):
     db_session = db.query(models.ActiveSession).filter(models.ActiveSession.id == session_id).first()
     if db_session:
-        db_session.data_used_mb += data_used_mb
+        db_session.data_used_mb += data_used_mb  # type: ignore
         db.commit()
         db.refresh(db_session)
     return db_session
@@ -97,7 +100,7 @@ def update_session_data_usage(db: Session, session_id: int, data_used_mb: int):
 def deactivate_session(db: Session, session_id: int):
     db_session = db.query(models.ActiveSession).filter(models.ActiveSession.id == session_id).first()
     if db_session:
-        db_session.is_active = False
+        db_session.is_active = False  # type: ignore
         db.commit()
         db.refresh(db_session)
     return db_session

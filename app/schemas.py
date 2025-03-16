@@ -57,7 +57,6 @@ class DataPackageUpdate(BaseModel):
     duration_hours: Optional[int] = Field(None, gt=0, description="Updated validity duration in hours")
 
 
-
 # ----------------- DATA PACKET SCHEMAS -----------------
 class DataPacketBase(BaseModel):
     code: str = Field(..., min_length=8, max_length=8, description="Unique 8-character code")

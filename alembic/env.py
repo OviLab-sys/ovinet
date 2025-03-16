@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool, create_engine
 from alembic import context
+from sqlalchemy.engine.url import URL
 
 # Import your Base from your FastAPI models
 from app.models import Base
@@ -19,6 +20,8 @@ target_metadata = Base.metadata
 DATABASE_URL = "mysql+pymysql://root:%40Engineering4405@localhost/ovinet"
 
 engine = create_engine(DATABASE_URL)
+
+config.set_main_option('sqlalchemy.url', str(DATABASE_URL))
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
